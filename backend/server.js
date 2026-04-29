@@ -102,33 +102,13 @@ app.use((req, res) => {
 // Global Error Handler
 app.use(errorHandler);
 
-// Graceful Shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
-  server.close(() => {
-    console.log('HTTP server closed');
-    mongoose.connection.close(false, () => {
-      console.log('MongoDB connection closed');
-      process.exit(0);
-    });
-  });
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT signal received: closing HTTP server');
-  server.close(() => {
-    console.log('HTTP server closed');
-    mongoose.connection.close(false, () => {
-      console.log('MongoDB connection closed');
-      process.exit(0);
-    });
-  });
-});
-
 // Start Server
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-  console.log(`
+
+// Only start server if not in Vercel environment
+if (process.env.VERCEL !== '1') {
+  const server = app.listen(PORT, () => {
+    console.log(`
 ╔═══════════════════════════════════════════════════════╗
 ║                                                       ║
 ║        🔐 SecurePass Guard API Server 🔐             ║
@@ -139,13 +119,37 @@ const server = app.listen(PORT, () => {
 ║  Database: ${mongoose.connection.readyState === 1 ? 'Connected ✓' : 'Disconnected ✗'}                            ║
 ║                                                       ║
 ╚═══════════════════════════════════════════════════════╝
-  `);
-});
+    `);
+  });
 
-// Handle Unhandled Promise Rejections
-process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Promise Rejection:', err);
-  server.close(() => process.exit(1));
-});
+  // Handle Unhandled Promise Rejections
+  process.on('unhandledRejection', (err) => {
+    console.error('Unhandled Promise Rejection:', err);
+    server.close(() => process.exit(1));
+  });
+
+  // Graceful Shutdown
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM signal received: closing HTTP server');
+    server.close(() => {
+      console.log('HTTP server closed');
+      mongoose.connection.close(false, () => {
+        console.log('MongoDB connection closed');
+        process.exit(0);
+      });
+    });
+  });
+
+  process.on('SIGINT', () => {
+    console.log('SIGINT signal received: closing HTTP server');
+    server.close(() => {
+      console.log('HTTP server closed');
+      mongoose.connection.close(false, () => {
+        console.log('MongoDB connection closed');
+        process.exit(0);
+      });
+    });
+  });
+}
 
 export default app;
